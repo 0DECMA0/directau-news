@@ -1,0 +1,64 @@
+---
+import { getCollection } from 'astro:content';
+import '../styles/global.css';
+
+// 1. Obtenemos todas las noticias
+const allNews = await getCollection('news');
+
+// 2. Las ordenamos de la más reciente a la más antigua
+const sortedNews = allNews.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DirectAU.news | Latest Australian News</title>
+  </head>
+  <body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col">
+    
+    <header class="bg-[#003087] text-white p-5 shadow-md border-b-4 border-red-600 sticky top-0 z-10">
+      <div class="max-w-5xl mx-auto flex justify-between items-center">
+        <div class="font-black text-3xl tracking-tighter">
+          DirectAU<span class="text-red-500">.news</span>
+        </div>
+        <nav class="text-sm font-semibold tracking-widest text-blue-200">
+          <a href="/" class="hover:text-white transition-colors">HOME</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="grow max-w-5xl mx-auto px-6 py-12 w-full">
+      <div class="mb-10 border-b-2 border-slate-200 pb-4">
+        <h1 class="text-3xl font-extrabold text-slate-800">Latest Headlines</h1>
+        <p class="text-slate-500 mt-2">The most important news from Australia, delivered directly.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {sortedNews.map((news) => (
+          <a href={`/news/${news.slug}`} class="group flex flex-col bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
+            <div class="p-6 grow flex flex-col">
+              
+              <p class="text-xs text-red-600 font-bold tracking-widest uppercase mb-3">
+                {new Date(news.data.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              
+              <h2 class="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-700 transition-colors leading-snug">
+                {news.data.title}
+              </h2>
+              
+              <div class="mt-auto pt-4 flex items-center text-sm font-semibold text-blue-600 group-hover:text-blue-800">
+                Read full story &rarr;
+              </div>
+              
+            </div>
+          </a>
+        ))}
+      </div>
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center text-sm mt-12">
+      <p>&copy; {new Date().getFullYear()} DirectAU.news. All rights reserved.</p>
+    </footer>
+  </body>
+</html>
