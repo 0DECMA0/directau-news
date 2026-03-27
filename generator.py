@@ -4,10 +4,11 @@ import os
 import re
 import json
 import logging
+import time  # ⏱️ NUEVO: Importamos la librería de tiempo
 from typing import Dict, Optional
 from dotenv import load_dotenv
 
-# 1. Configuración de Logging Profesional
+# 1. Configuración de Logging (Práctica DevSecOps)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -17,11 +18,10 @@ logging.basicConfig(
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    logging.error("No se encontró GEMINI_API_KEY en el archivo .env")
+    logging.critical("❌ ERROR: No se encontró GEMINI_API_KEY en el archivo .env")
     exit(1)
 
 genai.configure(api_key=api_key)
-# Seguimos usando el modelo de tu suscripción pro
 model = genai.GenerativeModel('gemini-3-flash-preview')
 
 RSS_URLS = [
@@ -30,38 +30,52 @@ RSS_URLS = [
 ]
 
 def crear_slug_seguro(texto: str) -> str:
-    """Genera un nombre de archivo seguro eliminando caracteres especiales."""
     texto = texto.lower()
     texto = re.sub(r'[^a-z0-9]+', '-', texto)
-    return texto.strip('-')[:40]
+    return texto.strip('-')[:50]
 
 def editor_ia(titulo: str, resumen: str) -> Optional[Dict[str, str]]:
-    """Envía la noticia a Gemini con reglas de seguridad para redes sociales."""
+    """El cerebro del periodista veterano. Ingeniería de Prompt para forzar saltos de línea."""
     prompt = f"""
-    Actúa como Editor Jefe de DirectAU.news y Estratega de Redes Sociales.
-    Basado en: "{titulo}" y "{resumen}", genera el siguiente contenido en inglés australiano:
-    
-    1. 'web_article': Un artículo profesional de 3 párrafos detallados. Debe incluir contexto sobre el impacto en Australia y un tono serio.
-    2. 'reels_script': Un guion de 15-20 segundos de alto impacto. 
-       REGLA DE ORO DE SEGURIDAD (Algoritmo): Prohibido usar palabras como 'killed', 'died', 'blood', 'murder' o 'accident' directamente. 
-       Usa eufemismos profesionales como 'passed away', 'tragic loss', 'incident', 'unfortunate event' o 'sad news' para evitar el shadowban en TikTok/Reels.
+    Actúa como un Periodista Veterano y Editor en Jefe de un prestigioso diario de Australia con 20 años de experiencia.
+    Basado en el titular y resumen: "{titulo}" / "{resumen}".
+    Genera el contenido en INGLÉS AUSTRALIANO respetando estas reglas:
 
-    RESPONDE ÚNICAMENTE CON UN JSON VÁLIDO:
+    1. 'web_article': 
+       - Usa la "Pirámide Invertida" y un tono sobrio, imparcial y de autoridad impecable.
+       - REGLA DE FORMATO MARKDOWN ESTRICTO: Para que la web renderice correctamente, debes separar CADA párrafo con dobles saltos de línea (\\n\\n).
+       - CITA DESTACADA: Entre el segundo y tercer párrafo, inventa una frase analítica profunda. DEBE estar rodeada por dobles saltos de línea, empezar con el símbolo `> ` y estar entre comillas.
+    2. 'reels_script': Guion de 15-20 seg. REGLA SECOPS: Evita palabras baneables (killed, blood, murder) usando eufemismos para evadir filtros.
+    3. 'seo_description': Un resumen cautivador de máximo 2 líneas.
+    4. 'category': Clasifica en UNA de estas: Politics, Tech, Business, World, Sports, Local.
+
+    RESPONDE ÚNICAMENTE CON UN JSON VÁLIDO CON ESTA ESTRUCTURA EXACTA (Nota cómo la cita lleva \\n\\n antes y después para no romper el Markdown):
     {{
-        "web_article": "Texto extenso para la web...",
-        "reels_script": "Guion optimizado para el algoritmo..."
+        "web_article": "Párrafo 1 (El Lead).\\n\\nPárrafo 2 (El Contexto).\\n\\n> \\"Frase analítica y profunda que resuma la gravedad del asunto.\\"\\n\\nPárrafo 3 (El Cierre).",
+        "reels_script": "El guion seguro para redes...",
+        "seo_description": "El resumen corto...",
+        "category": "Local"
     }}
     """
     try:
         response = model.generate_content(prompt)
-        # Limpieza de formato markdown si la IA lo incluye
-        respuesta_limpia = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(respuesta_limpia)
-    except json.JSONDecodeError:
-        logging.error(f"Error parseando JSON para el título: {titulo}")
+        respuesta_limpia = response.text.strip()
+        
+        if respuesta_limpia.startswith("```json"):
+            respuesta_limpia = respuesta_limpia[7:]
+        elif respuesta_limpia.startswith("```"):
+            respuesta_limpia = respuesta_limpia[3:]
+            
+        if respuesta_limpia.endswith("```"):
+            respuesta_limpia = respuesta_limpia[:-3]
+            
+        return json.loads(respuesta_limpia.strip())
+    
+    except json.JSONDecodeError as e:
+        logging.error(f"Error parseando JSON para el título '{titulo}': {e}")
         return None
     except Exception as e:
-        logging.error(f"Error de IA: {e}")
+        logging.error(f"Error de conexión/IA: {e}")
         return None
 
 def scraping_australia():
@@ -69,34 +83,45 @@ def scraping_australia():
     os.makedirs(directorio_salida, exist_ok=True)
     
     for url in RSS_URLS:
-        logging.info(f"Conectando a: {url}")
+        logging.info(f"Conectando a fuente: {url}")
         feed = feedparser.parse(url)
         
         for entry in feed.entries[:3]:
-            logging.info(f"Procesando: {entry.title}")
-            
+            logging.info(f"Redactando noticia: {entry.title}")
             contenido_ia = editor_ia(entry.title, entry.summary)
             
-            if contenido_ia and "web_article" in contenido_ia and "reels_script" in contenido_ia:
+            if contenido_ia and "web_article" in contenido_ia and "seo_description" in contenido_ia:
                 slug = crear_slug_seguro(entry.title)
                 ruta_archivo = os.path.join(directorio_salida, f"{slug}.md")
                 
-                # Inyectamos el guion "Safe" en el Frontmatter para tu uso personal
+                titulo_seguro = entry.title.replace('"', "'")
+                desc_segura = contenido_ia['seo_description'].replace('"', "'")
+                script_seguro = contenido_ia['reels_script'].replace('"', "'")
+                categoria = contenido_ia.get('category', 'Local').replace('"', "'")
+                
                 markdown_content = f"""---
-title: "{entry.title.replace('"', "'")}"
+title: "{titulo_seguro}"
 date: "{entry.published}"
-reels_script: "{contenido_ia['reels_script'].replace('"', "'")}"
+description: "{desc_segura}"
+category: "{categoria}"
+image: "/placeholder-news.jpg"
+reels_script: "{script_seguro}"
 ---
 
 {contenido_ia['web_article']}
 """
                 with open(ruta_archivo, "w", encoding="utf-8") as f:
                     f.write(markdown_content)
-                logging.info(f"✅ Guardado con éxito: {slug}.md")
+                logging.info(f"✅ Publicación lista: {slug}.md")
+                
+                # ⏱️ EL PARCHE MÁGICO: Pausa de 30 segundos entre peticiones
+                logging.info("⏳ Esperando 30 segundos para evitar bloqueos de API gratuita...")
+                time.sleep(30)
+                
             else:
-                logging.warning(f"⚠️ Falló la generación para: {entry.title}")
+                logging.warning(f"⚠️ Se omitió por error de redacción: {entry.title}")
 
 if __name__ == "__main__":
-    logging.info("Iniciando motor de noticias inteligente DirectAU...")
+    logging.info("🚀 Iniciando Motor Periodístico DirectAU (v2.0)...")
     scraping_australia()
-    logging.info("Proceso finalizado.")
+    logging.info("🏁 Redacción finalizada.")
