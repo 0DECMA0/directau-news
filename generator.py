@@ -4,7 +4,7 @@ import os
 import re
 import json
 import logging
-import time  # ⏱️ NUEVO: Importamos la librería de tiempo
+import time 
 from typing import Dict, Optional
 from dotenv import load_dotenv
 
@@ -18,7 +18,7 @@ logging.basicConfig(
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    logging.critical("❌ ERROR: No se encontró GEMINI_API_KEY en el archivo .env")
+    logging.critical("ERROR: No se encontró GEMINI_API_KEY en el archivo .env")
     exit(1)
 
 genai.configure(api_key=api_key)
@@ -112,16 +112,16 @@ reels_script: "{script_seguro}"
 """
                 with open(ruta_archivo, "w", encoding="utf-8") as f:
                     f.write(markdown_content)
-                logging.info(f"✅ Publicación lista: {slug}.md")
+                logging.info(f"Publicación lista: {slug}.md")
                 
-                # ⏱️ EL PARCHE MÁGICO: Pausa de 30 segundos entre peticiones
-                logging.info("⏳ Esperando 30 segundos para evitar bloqueos de API gratuita...")
+                # Pausa de 30 segundos entre peticiones
+                logging.info("Esperando 30 segundos para evitar bloqueos de API gratuita...")
                 time.sleep(30)
                 
             else:
-                logging.warning(f"⚠️ Se omitió por error de redacción: {entry.title}")
+                logging.warning(f"Se omitió por error de redacción: {entry.title}")
 
 if __name__ == "__main__":
-    logging.info("🚀 Iniciando Motor Periodístico DirectAU (v2.0)...")
+    logging.info("Iniciando Motor Periodístico DirectAU (v2.0)...")
     scraping_australia()
-    logging.info("🏁 Redacción finalizada.")
+    logging.info("Redacción finalizada.")
