@@ -19,7 +19,7 @@ logging.basicConfig(
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    logging.critical(" No se encontró GEMINI_API_KEY en el archivo .env")
+    logging.critical("ERROR: No se encontró GEMINI_API_KEY en el archivo .env")
     exit(1)
 
 genai.configure(api_key=api_key)
@@ -147,21 +147,23 @@ def scraping_australia():
                 categoria = contenido_ia.get('category', 'Local').replace('"', "'")
                 
                 markdown_content = f"""---
-                title: "{titulo_seguro}"
-                date: "{entry.published}"
-                description: "{desc_segura}"
-                category: "{categoria}"
-                image: "{ruta_imagen}"
-                reels_script: "{script_seguro}"
-                ---
-                {contenido_ia['web_article']}
-                """
+title: "{titulo_seguro}"
+date: "{entry.published}"
+description: "{desc_segura}"
+category: "{categoria}"
+image: "{ruta_imagen}"
+reels_script: "{script_seguro}"
+---
+
+{contenido_ia['web_article']}
+"""
                 with open(ruta_archivo, "w", encoding="utf-8") as f:
                     f.write(markdown_content)
                 logging.info(f"Publicación lista: {slug}.md")
                 
-                logging.info("Esperando 20 segundos para evitar bloqueos de API gratuita...")
-                time.sleep(20)
+                # Pausa de 30 segundos entre peticiones
+                logging.info("Esperando 30 segundos para evitar bloqueos de API gratuita...")
+                time.sleep(30)
                 
             else:
                 logging.warning(f"Se omitió por error de redacción: {entry.title}")
