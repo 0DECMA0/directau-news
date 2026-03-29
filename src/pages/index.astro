@@ -2,11 +2,8 @@
 import { getCollection } from 'astro:content';
 import '../styles/global.css';
 
-// 1. Obtenemos y ordenamos las noticias
 const allNews = await getCollection('news');
 const sortedNews = allNews.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
-
-// 2. Separamos la noticia principal (la más nueva) del resto
 const featuredNews = sortedNews[0];
 const gridNews = sortedNews.slice(1);
 ---
@@ -31,9 +28,6 @@ const gridNews = sortedNews.slice(1);
         </a>
         <nav class="hidden md:flex gap-8 text-xs font-bold tracking-widest text-blue-200 uppercase">
           <a href="/" class="text-white border-b-2 border-red-500 pb-1">Top Stories</a>
-          <a href="#" class="hover:text-white transition-colors">Politics</a>
-          <a href="#" class="hover:text-white transition-colors">Tech</a>
-          <a href="#" class="hover:text-white transition-colors">World</a>
         </nav>
       </div>
     </header>
@@ -95,7 +89,7 @@ const gridNews = sortedNews.slice(1);
               class="absolute inset-0 w-full h-full object-cover opacity-40 transition-all duration-700 group-hover:opacity-100 group-hover:scale-110" 
             />
 
-            <div class="absolute inset-0 bg-slate-900/90 transition-colors duration-500 group-hover:bg-linear-to-t group-hover:from-slate-900 group-hover:via-slate-900/50 group-hover:to-transparent"></div>
+            <div class="absolute inset-0 bg-slate-900/20 transition-colors duration-500 group-hover:bg-linear-to-t group-hover:from-slate-900 group-hover:via-slate-900/50 group-hover:to-transparent"></div>
 
             <div class="absolute inset-0 p-8 flex flex-col justify-end">
               

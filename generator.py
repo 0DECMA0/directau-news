@@ -4,11 +4,12 @@ import os
 import re
 import json
 import logging
-import time  # ⏱️ NUEVO: Importamos la librería de tiempo
+import time
+import requests 
 from typing import Dict, Optional
 from dotenv import load_dotenv
 
-# 1. Configuración de Logging (Práctica DevSecOps)
+# 1. Configuración de Logging 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -18,7 +19,7 @@ logging.basicConfig(
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    logging.critical("❌ ERROR: No se encontró GEMINI_API_KEY en el archivo .env")
+    logging.critical(" No se encontró GEMINI_API_KEY en el archivo .env")
     exit(1)
 
 genai.configure(api_key=api_key)
@@ -33,6 +34,47 @@ def crear_slug_seguro(texto: str) -> str:
     texto = texto.lower()
     texto = re.sub(r'[^a-z0-9]+', '-', texto)
     return texto.strip('-')[:50]
+
+def extraer_url_imagen(entry) -> Optional[str]:
+    """Busca en las profundidades del RSS el enlace de la imagen original."""
+    if 'media_content' in entry and len(entry.media_content) > 0:
+        return entry.media_content[0].get('url')
+    
+    if 'enclosures' in entry and len(entry.enclosures) > 0:
+        for enclosure in entry.enclosures:
+            if 'image' in enclosure.get('type', ''):
+                return enclosure.get('href')
+                
+    if 'media_thumbnail' in entry and len(entry.media_thumbnail) > 0:
+        return entry.media_thumbnail[0].get('url')
+        
+    return None
+
+def descargar_imagen(url: str, slug: str) -> str:
+    """Descarga la imagen de internet y la guarda en la carpeta public/ de Astro."""
+    if not url:
+        return "/placeholder-news.jpg" 
+        
+    try:
+        directorio_imagenes = os.path.join('public', 'news-images')
+        os.makedirs(directorio_imagenes, exist_ok=True)
+        
+        ruta_local = os.path.join(directorio_imagenes, f"{slug}.jpg")
+        ruta_astro = f"/news-images/{slug}.jpg" 
+        
+        respuesta = requests.get(url, stream=True, timeout=10)
+        if respuesta.status_code == 200:
+            with open(ruta_local, 'wb') as f:
+                for chunk in respuesta.iter_content(1024):
+                    f.write(chunk)
+            logging.info(f"Imagen guardada con éxito: {slug}.jpg")
+            return ruta_astro
+            
+    except Exception as e:
+        logging.warning(f"Error al descargar la imagen {url}: {e}")
+        
+    return "/placeholder-news.jpg"
+# --- FIN DE LA MAGIA DE IMÁGENES ---
 
 def editor_ia(titulo: str, resumen: str) -> Optional[Dict[str, str]]:
     """El cerebro del periodista veterano. Ingeniería de Prompt para forzar saltos de línea."""
@@ -86,12 +128,17 @@ def scraping_australia():
         logging.info(f"Conectando a fuente: {url}")
         feed = feedparser.parse(url)
         
+        # Mantengo tu límite de 3 noticias por fuente
         for entry in feed.entries[:3]:
             logging.info(f"Redactando noticia: {entry.title}")
+            
+            slug = crear_slug_seguro(entry.title)
+            url_imagen = extraer_url_imagen(entry)
+            ruta_imagen = descargar_imagen(url_imagen, slug)
+            
             contenido_ia = editor_ia(entry.title, entry.summary)
             
             if contenido_ia and "web_article" in contenido_ia and "seo_description" in contenido_ia:
-                slug = crear_slug_seguro(entry.title)
                 ruta_archivo = os.path.join(directorio_salida, f"{slug}.md")
                 
                 titulo_seguro = entry.title.replace('"', "'")
@@ -100,28 +147,26 @@ def scraping_australia():
                 categoria = contenido_ia.get('category', 'Local').replace('"', "'")
                 
                 markdown_content = f"""---
-title: "{titulo_seguro}"
-date: "{entry.published}"
-description: "{desc_segura}"
-category: "{categoria}"
-image: "/placeholder-news.jpg"
-reels_script: "{script_seguro}"
----
-
-{contenido_ia['web_article']}
-"""
+                title: "{titulo_seguro}"
+                date: "{entry.published}"
+                description: "{desc_segura}"
+                category: "{categoria}"
+                image: "{ruta_imagen}"
+                reels_script: "{script_seguro}"
+                ---
+                {contenido_ia['web_article']}
+                """
                 with open(ruta_archivo, "w", encoding="utf-8") as f:
                     f.write(markdown_content)
-                logging.info(f"✅ Publicación lista: {slug}.md")
+                logging.info(f"Publicación lista: {slug}.md")
                 
-                # ⏱️ EL PARCHE MÁGICO: Pausa de 30 segundos entre peticiones
-                logging.info("⏳ Esperando 30 segundos para evitar bloqueos de API gratuita...")
-                time.sleep(30)
+                logging.info("Esperando 20 segundos para evitar bloqueos de API gratuita...")
+                time.sleep(20)
                 
             else:
-                logging.warning(f"⚠️ Se omitió por error de redacción: {entry.title}")
+                logging.warning(f"Se omitió por error de redacción: {entry.title}")
 
 if __name__ == "__main__":
-    logging.info("🚀 Iniciando Motor Periodístico DirectAU (v2.0)...")
+    logging.info("Iniciando Motor Periodístico DirectAU (v3.0)...")
     scraping_australia()
-    logging.info("🏁 Redacción finalizada.")
+    logging.info("Redacción finalizada.")

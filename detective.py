@@ -8,4 +8,4 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 print("Buscando modelos compatibles para DirectAU...")
 for m in genai.list_models():
     if 'generateContent' in m.supported_generation_methods:
-        print(f"✅ MODELO ENCONTRADO: {m.name}")
+        print(f"MODELO ENCONTRADO: {m.name}")
