@@ -1,8 +1,11 @@
 import { defineConfig } from 'astro/config';
-import tailwindcss from '@tailwindcss/vite';
-// https://astro.build/config
+import tailwind from '@tailwindcss/vite';
+import sitemap from '@astrojs/sitemap';
+
 export default defineConfig({
+  site: 'https://directau.news', 
+  integrations: [sitemap()],
   vite: {
-    plugins: [tailwindcss()]
-  }
+    plugins: [tailwind()],
+  },
 });

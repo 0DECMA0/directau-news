@@ -1,0 +1,106 @@
+---
+import { getCollection } from 'astro:content';
+import '../../styles/global.css';
+
+// 1. EL CEREBRO DE LA RUTA DINÁMICA
+export async function getStaticPaths() {
+  const allNews = await getCollection('news');
+  
+  // Extraemos todas las categorías únicas que la IA ha generado
+  const categories = [...new Set(allNews.map((news) => news.data.category).filter(Boolean))];
+
+  return categories.map((category) => {
+    // Filtramos las noticias que pertenecen solo a esta categoría
+    const filteredNews = allNews.filter((news) => news.data.category === category);
+    // Ordenamos por la más reciente
+    const sortedNews = filteredNews.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
+
+    return {
+      // El parámetro 'category' crea la URL (ej. /category/tech)
+      params: { category: String(category).toLowerCase() },
+      // Le pasamos las noticias ya filtradas a la página
+      props: { category, news: sortedNews },
+    };
+  });
+}
+
+// Recibimos los datos que nos mandó la función de arriba
+const { category, news } = Astro.props;
+---
+
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{category} News | DirectAU.news</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+  </head>
+  
+  <body class="bg-slate-50 text-slate-900 font-['Inter'] antialiased min-h-screen flex flex-col dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+    
+    <header class="bg-[#003087] text-white p-5 shadow-lg border-b-4 border-red-600 sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <a href="/" class="font-black text-3xl tracking-tighter hover:text-blue-100 transition-colors">
+          DirectAU<span class="text-red-500">.news</span>
+        </a>
+        <nav class="hidden md:flex gap-6 text-xs font-bold tracking-widest text-blue-200 uppercase">
+          <a href="/" class="hover:text-white transition-colors">Top Stories</a>
+          <a href="/category/politics" class={`transition-colors ${category === 'Politics' ? 'text-white border-b-2 border-red-500 pb-1' : 'hover:text-white'}`}>Politics</a>
+          <a href="/category/tech" class={`transition-colors ${category === 'Tech' ? 'text-white border-b-2 border-red-500 pb-1' : 'hover:text-white'}`}>Tech</a>
+          <a href="/category/business" class={`transition-colors ${category === 'Business' ? 'text-white border-b-2 border-red-500 pb-1' : 'hover:text-white'}`}>Business</a>
+          <a href="/category/world" class={`transition-colors ${category === 'World' ? 'text-white border-b-2 border-red-500 pb-1' : 'hover:text-white'}`}>World</a>
+          <a href="/category/sports" class={`transition-colors ${category === 'Sports' ? 'text-white border-b-2 border-red-500 pb-1' : 'hover:text-white'}`}>Sports</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="grow max-w-6xl mx-auto px-6 py-12 w-full">
+      
+      <div class="mb-10 border-b border-slate-300 dark:border-slate-800 pb-4">
+        <h1 class="text-4xl md:text-5xl font-extrabold font-['Playfair_Display'] text-slate-900 dark:text-white tracking-tight capitalize">{category} News</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm font-semibold uppercase tracking-widest">Latest updates in {category}</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {news.length > 0 ? news.map((item) => (
+          <a href={`/news/${item.slug}`} class="group relative h-104 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 block bg-slate-900">
+            <img src={item.data.image || '/placeholder-news.jpg'} alt={item.data.title} class="absolute inset-0 w-full h-full object-cover opacity-40 transition-all duration-700 group-hover:opacity-100 group-hover:scale-110" />
+            <div class="absolute inset-0 bg-slate-900/20 transition-colors duration-500 group-hover:bg-linear-to-t group-hover:from-slate-900 group-hover:via-slate-900/50 group-hover:to-transparent"></div>
+            
+            <div class="absolute inset-0 p-8 flex flex-col justify-end">
+              <div class="flex justify-between items-center mb-3 z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                <p class="text-red-500 font-bold text-xs uppercase tracking-widest">
+                  {new Date(item.data.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
+                </p>
+                <span class="bg-[#003087] text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-sm">
+                  {item.data.category || 'News'}
+                </span>
+              </div>
+              <h2 class="text-2xl font-['Playfair_Display'] font-bold text-white leading-snug mb-0 z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                {item.data.title}
+              </h2>
+            </div>
+          </a>
+        )) : (
+          <p class="col-span-full text-slate-500 text-center py-12">No news available in this category yet. Our AI reporters are working on it!</p>
+        )}
+      </div>
+    </main>
+
+    <footer class="bg-slate-950 text-slate-400 py-12 mt-12 border-t-4 border-[#003087]">
+      <div class="max-w-6xl mx-auto px-6 text-center">
+        <div class="font-black text-2xl tracking-tighter text-slate-300 mb-4">DirectAU<span class="text-red-500">.news</span></div>
+        <p class="text-sm mb-6 max-w-md mx-auto">Independent, AI-powered journalism tracking the pulse of Australia. Built for speed, verified for accuracy.</p>
+        <p class="text-xs">&copy; {new Date().getFullYear()} DirectAU.news. All rights reserved.</p>
+      </div>
+    </footer>
+    
+    <script>
+      import { inject } from '@vercel/analytics';
+      inject();
+    </script>
+  </body>
+</html>

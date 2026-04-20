@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import '../../styles/global.css';
 
 export async function getStaticPaths() {
@@ -10,7 +10,13 @@ export async function getStaticPaths() {
   }));
 }
 
-const { entry } = Astro.props;
+// NUEVO: Le decimos a TypeScript exactamente qué tipo de dato es 'entry'
+type Props = {
+  entry: CollectionEntry<'news'>;
+};
+
+// Aplicamos el molde a nuestras props
+const { entry } = Astro.props as Props;
 const { Content } = await entry.render();
 
 const formattedDate = new Date(entry.data.date).toLocaleDateString('en-AU', {
@@ -65,7 +71,7 @@ const readTime = Math.max(1, Math.ceil(wordCount / 200));
             alt={entry.data.title}
             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent flex items-end">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end">
             <p class="p-6 text-white text-xs font-bold tracking-widest uppercase flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
               Exclusive Coverage • {formattedDate}
@@ -96,57 +102,37 @@ const readTime = Math.max(1, Math.ceil(wordCount / 200));
                 </button>
                 <button aria-label="Share on WhatsApp" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#25D366] hover:text-white transition-colors">
                   <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <section class="prose prose-xl dark:prose-invert max-w-none prose-slate 
-            prose-headings:font-['Playfair_Display'] prose-headings:font-bold
-            prose-img:rounded-xl 
-            prose-a:text-[#003087] dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline 
-            text-slate-800 dark:text-slate-300 leading-relaxed
-            
-            prose-blockquote:font-['Playfair_Display'] 
-            prose-blockquote:text-3xl md:prose-blockquote:text-4xl 
-            prose-blockquote:font-black 
-            prose-blockquote:text-slate-900 dark:prose-blockquote:text-white 
-            prose-blockquote:border-l-8 
-            prose-blockquote:border-red-600 
-            prose-blockquote:pl-8 
-            prose-blockquote:my-12 
-            prose-blockquote:not-italic
-            prose-blockquote:leading-tight">
-            <Content />
-          </section>
-
-          {entry.data.reels_script && (
-            <aside class="mt-16 p-8 bg-slate-950 rounded-2xl shadow-2xl relative overflow-hidden group border border-slate-800">
-              <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg class="w-24 h-24 text-emerald-500/30" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-              </div>
-              
-              <div class="relative z-10">
-                <h3 class="text-emerald-400 font-black text-xl mb-4 flex items-center uppercase tracking-tighter">
-                  <span class="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></span>
-                  DirectAU Safe-Script™
-                </h3>
-                <div class="p-6 bg-slate-900 border border-slate-700 rounded-xl font-mono text-sm leading-relaxed text-emerald-50/90 backdrop-blur-sm">
-                  {entry.data.reels_script}
+                    </button>
+                  </div>
                 </div>
-                <p class="mt-4 text-slate-500 text-xs italic">
-                  * SecOps Note: Contenido optimizado para evasión de restricciones algorítmicas (Meta/TikTok).
-                </p>
-              </div>
-            </aside>
-          )}
-        </div>
-      </article>
-      
-      <footer class="mt-12 text-center text-slate-400 dark:text-slate-500 text-xs pb-12">
-        <p>DirectAU.news • Australia Digital Division</p>
-        <p class="mt-1">Coded for speed, verified by humans.</p>
-      </footer>
-    </main>
-  </body>
-</html>
+              </header>
+
+              <section class="prose prose-xl dark:prose-invert max-w-none prose-slate 
+                prose-headings:font-['Playfair_Display'] prose-headings:font-bold
+                prose-img:rounded-xl 
+                prose-a:text-[#003087] dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline 
+                text-slate-800 dark:text-slate-300 leading-relaxed
+                
+                prose-blockquote:font-['Playfair_Display'] 
+                prose-blockquote:text-3xl md:prose-blockquote:text-4xl 
+                prose-blockquote:font-black 
+                prose-blockquote:text-slate-900 dark:prose-blockquote:text-white 
+                prose-blockquote:border-l-8 
+                prose-blockquote:border-red-600 
+                prose-blockquote:pl-8 
+                prose-blockquote:my-12 
+                prose-blockquote:not-italic
+                prose-blockquote:leading-tight">
+                <Content />
+              </section>
+
+            </div>
+          </article>
+          
+          <footer class="mt-12 text-center text-slate-400 dark:text-slate-500 text-xs pb-12">
+            <p>DirectAU.news • Australia Digital Division</p>
+            <p class="mt-1">Coded for speed, verified by humans.</p>
+          </footer>
+        </main>
+      </body>
+    </html>

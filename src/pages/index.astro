@@ -3,9 +3,23 @@ import { getCollection } from 'astro:content';
 import '../styles/global.css';
 
 const allNews = await getCollection('news');
+
+// Ordenamos todas las noticias de la más nueva a la más vieja
 const sortedNews = allNews.sort((a, b) => new Date(b.data.date).valueOf() - new Date(a.data.date).valueOf());
+
+// Separamos la portada del resto
 const featuredNews = sortedNews[0];
-const gridNews = sortedNews.slice(1);
+const remainingNews = sortedNews.slice(1);
+
+// LÓGICA DE AGRUPACIÓN: Extraemos categorías únicas y tomamos solo 3 noticias por cada una
+const categories = [...new Set(remainingNews.map((news) => news.data.category).filter(Boolean))];
+const groupedNews = categories.map((category) => {
+  return {
+    category,
+    // Limitamos a un máximo de 3 elementos por fila para que la página cargue rapidísimo
+    items: remainingNews.filter((news) => news.data.category === category).slice(0, 3) 
+  };
+});
 ---
 
 <html lang="en" class="scroll-smooth">
@@ -21,15 +35,36 @@ const gridNews = sortedNews.slice(1);
   
   <body class="bg-slate-50 text-slate-900 font-['Inter'] antialiased min-h-screen flex flex-col dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
     
-    <header class="bg-[#003087] text-white p-5 shadow-lg border-b-4 border-red-600 sticky top-0 z-50">
+    <header class="bg-[#003087] text-white p-5 shadow-lg border-b-4 border-red-600 sticky top-0 z-50 relative">
       <div class="max-w-6xl mx-auto flex justify-between items-center">
-        <a href="/" class="font-black text-3xl tracking-tighter hover:text-blue-100 transition-colors">
+        <a href="/" class="font-black text-3xl tracking-tighter hover:text-blue-100 transition-colors z-50">
           DirectAU<span class="text-red-500">.news</span>
         </a>
-        <nav class="hidden md:flex gap-8 text-xs font-bold tracking-widest text-blue-200 uppercase">
+        
+        <button id="mobile-menu-btn" class="md:hidden z-50 p-2 text-white focus:outline-none" aria-label="Toggle Menu">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path id="menu-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <nav class="hidden md:flex gap-6 text-xs font-bold tracking-widest text-blue-200 uppercase">
           <a href="/" class="text-white border-b-2 border-red-500 pb-1">Top Stories</a>
+          <a href="/category/politics" class="hover:text-white transition-colors">Politics</a>
+          <a href="/category/tech" class="hover:text-white transition-colors">Tech</a>
+          <a href="/category/business" class="hover:text-white transition-colors">Business</a>
+          <a href="/category/world" class="hover:text-white transition-colors">World</a>
+          <a href="/category/sports" class="hover:text-white transition-colors">Sports</a>
         </nav>
       </div>
+
+      <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[#003087] border-b-4 border-red-600 shadow-2xl flex-col items-center py-8 gap-6 text-sm font-bold tracking-widest text-blue-200 uppercase transition-all duration-300 md:hidden">
+          <a href="/" class="text-white border-b-2 border-red-500 pb-1">Top Stories</a>
+          <a href="/category/politics" class="hover:text-white transition-colors">Politics</a>
+          <a href="/category/tech" class="hover:text-white transition-colors">Tech</a>
+          <a href="/category/business" class="hover:text-white transition-colors">Business</a>
+          <a href="/category/world" class="hover:text-white transition-colors">World</a>
+          <a href="/category/sports" class="hover:text-white transition-colors">Sports</a>
+      </nav>
     </header>
 
     <main class="grow max-w-6xl mx-auto px-6 py-12 w-full">
@@ -47,7 +82,6 @@ const gridNews = sortedNews.slice(1);
       {featuredNews && (
         <section class="mb-16">
           <a href={`/news/${featuredNews.slug}`} class="group relative flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-xl border border-slate-200 dark:border-slate-800 hover:shadow-2xl transition-all duration-300">
-            
             <div class="md:w-2/3 aspect-video relative overflow-hidden">
               <img 
                 src={featuredNews.data.image || '/placeholder-news.jpg'} 
@@ -55,13 +89,15 @@ const gridNews = sortedNews.slice(1);
                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
+              <div class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-sm shadow-md">
+                {featuredNews.data.category || 'News'}
+              </div>
             </div>
 
             <div class="md:w-1/3 p-8 md:p-10 flex flex-col justify-center relative">
               <div class="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
               <p class="text-xs text-red-600 font-bold tracking-widest uppercase mb-4 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                Breaking News
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span> Breaking News
               </p>
               <h2 class="text-3xl md:text-4xl font-bold font-['Playfair_Display'] text-slate-900 dark:text-white leading-tight mb-4 group-hover:text-[#003087] dark:group-hover:text-blue-400 transition-colors">
                 {featuredNews.data.title}
@@ -79,43 +115,56 @@ const gridNews = sortedNews.slice(1);
         </section>
       )}
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {gridNews.map((news) => (
-          <a href={`/news/${news.slug}`} class="group relative h-104 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 block bg-slate-900">
-            
-            <img 
-              src={news.data.image || '/placeholder-news.jpg'} 
-              alt={news.data.title} 
-              class="absolute inset-0 w-full h-full object-cover opacity-40 transition-all duration-700 group-hover:opacity-100 group-hover:scale-110" 
-            />
+      {groupedNews.map((group) => (
+        <section class="mb-16">
+          <div class="flex items-center justify-between border-b-2 border-slate-200 dark:border-slate-800 pb-2 mb-8">
+            <h2 class="text-3xl font-extrabold font-['Playfair_Display'] text-slate-900 dark:text-white capitalize">
+              {group.category}
+            </h2>
+            <a href={`/category/${String(group.category).toLowerCase()}`} class="text-sm font-bold text-[#003087] dark:text-blue-400 hover:text-red-600 dark:hover:text-red-500 uppercase tracking-widest transition-colors">
+              View All &rarr;
+            </a>
+          </div>
 
-            <div class="absolute inset-0 bg-slate-900/20 transition-colors duration-500 group-hover:bg-linear-to-t group-hover:from-slate-900 group-hover:via-slate-900/50 group-hover:to-transparent"></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {group.items.map((news) => (
+              <a href={`/news/${news.slug}`} class="group relative h-104 rounded-xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 block bg-slate-900">
+                <img 
+                  src={news.data.image || '/placeholder-news.jpg'} 
+                  alt={news.data.title} 
+                  loading="lazy"
+                  class="absolute inset-0 w-full h-full object-cover opacity-40 transition-all duration-700 group-hover:opacity-100 group-hover:scale-110" 
+                />
+                <div class="absolute inset-0 bg-slate-900/20 transition-colors duration-500 group-hover:bg-linear-to-t group-hover:from-slate-900 group-hover:via-slate-900/50 group-hover:to-transparent"></div>
 
-            <div class="absolute inset-0 p-8 flex flex-col justify-end">
-              
-              <p class="text-red-500 font-bold text-xs uppercase tracking-widest mb-3 z-10 transition-transform duration-500 group-hover:-translate-y-2">
-                {new Date(news.data.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
-              </p>
-              
-              <h2 class="text-2xl font-['Playfair_Display'] font-bold text-white leading-snug mb-0 z-10 transition-transform duration-500 group-hover:-translate-y-2">
-                {news.data.title}
-              </h2>
-              
-              <div class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 group-hover:grid-rows-[1fr] group-hover:opacity-100 group-hover:mt-4 z-10">
-                <div class="overflow-hidden">
-                  <p class="text-slate-300 text-sm line-clamp-3">
-                    {news.data.description}
-                  </p>
-                  <span class="inline-block mt-4 text-white text-xs font-bold tracking-widest uppercase border-b border-red-500 pb-1">
-                    Full Story
-                  </span>
+                <div class="absolute inset-0 p-8 flex flex-col justify-end">
+                  <div class="flex justify-between items-center mb-3 z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                    <p class="text-red-500 font-bold text-xs uppercase tracking-widest">
+                      {new Date(news.data.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  
+                  <h2 class="text-2xl font-['Playfair_Display'] font-bold text-white leading-snug mb-0 z-10 transition-transform duration-500 group-hover:-translate-y-2">
+                    {news.data.title}
+                  </h2>
+                  
+                  <div class="grid grid-rows-[0fr] opacity-0 transition-all duration-500 group-hover:grid-rows-[1fr] group-hover:opacity-100 group-hover:mt-4 z-10">
+                    <div class="overflow-hidden">
+                      <p class="text-slate-300 text-sm line-clamp-3">
+                        {news.data.description}
+                      </p>
+                      <span class="inline-block mt-4 text-white text-xs font-bold tracking-widest uppercase border-b border-red-500 pb-1">
+                        Full Story
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-            </div>
-          </a>
-        ))}
-      </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))}
+
     </main>
 
     <footer class="bg-slate-950 text-slate-400 py-12 mt-12 border-t-4 border-[#003087]">
@@ -127,5 +176,33 @@ const gridNews = sortedNews.slice(1);
         <p class="text-xs">&copy; {new Date().getFullYear()} DirectAU.news. All rights reserved.</p>
       </div>
     </footer>
+    
+    <script>
+      import { inject } from '@vercel/analytics';
+      inject();
+    </script>
+
+
+    <script>
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('menu-icon');
+
+      // Le decimos a TypeScript: "Solo ejecuta esto si encontraste los 3 elementos"
+      if (btn && menu && icon) {
+        btn.addEventListener('click', () => {
+          // Alternar visualización del menú
+          menu.classList.toggle('hidden');
+          menu.classList.toggle('flex');
+          
+          // Animación del ícono (Hamburguesa a 'X')
+          if (menu.classList.contains('hidden')) {
+            icon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16'); // Hamburguesa
+          } else {
+            icon.setAttribute('d', 'M6 18L18 6M6 6l12 12'); // Tache (X)
+          }
+        });
+      }
+    </script>
   </body>
 </html>

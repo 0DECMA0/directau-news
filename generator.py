@@ -25,9 +25,13 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-3-flash-preview')
 
+# CAMBIO A: Múltiples fuentes RSS para diversificar las categorías automáticamente
 RSS_URLS = [
-    'https://www.abc.net.au/news/feed/51120/rss.xml',
-    'https://www.9news.com.au/rss'
+    'https://www.abc.net.au/news/feed/51120/rss.xml', # Top Stories
+    'https://www.abc.net.au/news/feed/52380/rss.xml', # Politics
+    'https://www.abc.net.au/news/feed/51892/rss.xml', # Business
+    'https://www.abc.net.au/news/feed/45910/rss.xml', # Sports
+    'https://www.abc.net.au/news/science/feed/29320/rss.xml' # Science & Tech
 ]
 
 def crear_slug_seguro(texto: str) -> str:
@@ -128,8 +132,8 @@ def scraping_australia():
         logging.info(f"Conectando a fuente: {url}")
         feed = feedparser.parse(url)
         
-        # Mantengo tu límite de 3 noticias por fuente
-        for entry in feed.entries[:3]:
+        # CAMBIO B: Reducido a 2 noticias por cada canal temático
+        for entry in feed.entries[:2]:
             logging.info(f"Redactando noticia: {entry.title}")
             
             slug = crear_slug_seguro(entry.title)
@@ -169,6 +173,6 @@ reels_script: "{script_seguro}"
                 logging.warning(f"Se omitió por error de redacción: {entry.title}")
 
 if __name__ == "__main__":
-    logging.info("Iniciando Motor Periodístico DirectAU (v3.0)...")
+    logging.info("Iniciando Motor Periodístico DirectAU (v4.0 Multicanal)...")
     scraping_australia()
     logging.info("Redacción finalizada.")
